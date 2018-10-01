@@ -1,0 +1,11 @@
+data/
+data_raw/
+_model-*/
+model-*/
+data.zip
+
+*.pyc
+*.swp
+.keras/
+.nv/
+
