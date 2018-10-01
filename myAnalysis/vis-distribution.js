@@ -17,7 +17,7 @@ flatten = _.shuffle(flatten);
 
 let svgWidth = window.innerWidth/3;
 let svgHeight = window.innerHeight/2;
-let marginMin = 20;
+let marginMin = 30;
 let width = svgWidth-2*marginMin;
 let height = svgHeight-2*marginMin;
 let side = Math.min(width, height);
@@ -33,19 +33,19 @@ let svg = leftDiv
 .append('svg')
 .attr('width', svgWidth)
 .attr('height', svgHeight)
-.style('background', '#eee');
+.style('background', '#fff');
 
 let probBarSvg = leftDiv
 .append('div')
 .append('svg')
 .attr('width', svgWidth)
 .attr('height', svgHeight)
-.style('background', '#ddd');
+.style('background', '#fff');
 
 probBarSvg.show = function(d){
 	let preds = d.preds;
 	let sx = d3.scaleLinear()
-	.domain([0,preds.length])
+	.domain([0,preds.length+0.5])
 	.range([marginLeft, svgWidth-marginLeft]);
 	let sy = d3.scaleLinear()
 	.domain([0, 1])
@@ -62,12 +62,11 @@ probBarSvg.show = function(d){
 	.attr('class', 'bar');
 
 	this.selectAll('.bar')
-	.attr('x', (d,i)=>sx(i-0.4))
+	.attr('x', (d,i)=>sx(i+0.6))
 	.attr('y', (d,i)=>sy(d.prob))
 	.attr('width', Math.abs(sx(1)-sx(0))*0.8)
 	.attr('height', (d,i)=>Math.abs(sy(d.prob)-sy(0)))
 	.attr('fill', (_,i)=>{
-		console.log(d.true_pred_index==i);
 		return d.true_pred_index==i?sc(1):sc(0)
 	});
 
@@ -124,17 +123,24 @@ tip.show = function(d){
 }
 
 
+let currentD = null;
+let currentPoint = null;
 
 svg.selectAll('.point')
 .data(flatten)
 .enter()
 .append('circle')
+.attr('class', 'point')
 .attr('cx', d=>sx(d.top_pred_prob))
 .attr('cy', d=>sy(d.true_pred_prob))
 .attr('r', 2)
 .attr('fill', d=>sc(!d.is_impossible))
 .attr('fill-opacity', 0.4)
-.on('mouseover', function(d){
+.on('mouseover', function(d,i){
+
+	svg.selectAll('.point')
+	.attr('stroke-width', 0);
+
 	d3.select(this)
 	.attr('stroke', 'white')
 	.attr('stroke-width', 10);
@@ -142,13 +148,28 @@ svg.selectAll('.point')
 	d3.select(this).moveToFront();
 	tip.show(d);
 	probBarSvg.show(d);
+	show(d);
 })
 .on('mouseout', function(){
-	d3.select(this)
+	if(currentD){
+		show(currentD);
+		probBarSvg.show(currentD);
+		tip.show(currentD);
+	}
+	
+
+	svg.selectAll('.point')
 	.attr('stroke-width', 0);
+	if(currentPoint){
+		currentPoint
+		.attr('stroke-width',10);
+	}
+	
+
 })
-.on('click', function(d){
-	show(d);
+.on('click', function(d,i){
+	currentPoint = d3.select(this);
+	currentD = d;
 });
 
 svg.append('g')
@@ -164,15 +185,15 @@ svg.append('g')
 svg.append('text')
 .attr('class', 'xlabel')
 .attr('x', sx(0.5))
-.attr('y', sy(-0.5))
+.attr('y', sy(-0.25))
 .attr('text-anchor', 'middle')
 .text('Top prediction probability');
 
 svg.append('text')
 .attr('class', 'ylabel')
-.attr('x', sx(-0.2))
+.attr('x', marginLeft/3)
 .attr('y', sy(0.0))
-.attr('transform', 'rotate(-90,'+sx(-0.2)+','+sy(0.0)+')')
+.attr('transform', 'rotate(-90,'+(marginLeft/3)+','+sy(0.0)+')')
 .attr('text-anchor', 'middle')
 .text('True prediction probability');
 
@@ -193,7 +214,6 @@ svg.append('text')
 
 let div;
 function show(d){
-	console.log(d);
 	body.selectAll('#paragraph-container').remove();
 	if(d.answers.length==0){
 	d.answers = [{text:'', answer_start:0}];
@@ -383,7 +403,6 @@ function taggedHtml(text, answers, preds){
 		yPred_no = 0.0;
 	}
 	let y_no = (answers.length==1 && answers[0].text=='')? 1.0:0.0;
-	console.log(y_no);
 	res += '<span id="noAnswer" yPred='+yPred_no+' yAns='+y_no+'>'
 	res += 'NO ANSWER';
 	res += '</span>';
